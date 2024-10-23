@@ -13,6 +13,7 @@ struct thread : public voo::casein_thread {
       voo::one_quad_render oqr { "multi-output", &dq, *pl };
 
       ots_loop(dq, sw, [&](auto cb) {
+        oqr.run(cb, sw.extent());
       });
     });
   }
