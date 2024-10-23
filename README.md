@@ -1,2 +1,3 @@
-# Vulkan-tests
+# vulkan-tests
+
 Repo for testing Vulkan stuff
