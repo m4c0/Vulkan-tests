@@ -9,14 +9,20 @@ import voo;
 struct thread : public voo::casein_thread {
   void run() override {
     voo::device_and_queue dq { "test" };
-    while (!interrupted()) {
-      voo::swapchain_and_stuff sw { dq };
+    auto pd = dq.physical_device();
+    auto s = dq.surface();
 
-      // TODO: add more attachments
-      auto rp = vee::create_render_pass(dq.physical_device(), dq.surface());
+    while (!interrupted()) {
+      auto rp = vee::create_render_pass({{
+        vee::create_colour_attachment(pd, s),
+        vee::create_colour_attachment(),
+      }});
+      voo::offscreen::colour_buffer cb { pd, voo::extent_of(pd, s) };
+
+      voo::swapchain_and_stuff sw { dq, *rp, {{ cb.image_view() }} };
 
       auto pl = vee::create_pipeline_layout();
-      voo::one_quad_render oqr { "multi-output", dq.physical_device(), *rp, *pl };
+      voo::one_quad_render oqr { "multi-output", pd, *rp, *pl };
 
       ots_loop(dq, sw, [&](auto cb) {
         oqr.run(cb, sw.extent());
