@@ -9,6 +9,7 @@ import voo;
 
 struct upc {
   float aspect;
+  float selection;
 };
 
 struct thread : public voo::casein_thread {
@@ -37,10 +38,12 @@ struct thread : public voo::casein_thread {
         vee::colour_blend_classic(), vee::colour_blend_none()
       } };
 
+      upc pc {
+        .aspect = sw.aspect(),
+      };
+
       extent_loop(q, sw, [&] {
         sw.queue_one_time_submit(q, [&](auto pcb) {
-          upc pc { .aspect = sw.aspect() };
-
           voo::cmd_render_pass scb {vee::render_pass_begin {
             .command_buffer = *pcb,
             .render_pass = *rp,
@@ -53,15 +56,15 @@ struct thread : public voo::casein_thread {
           }};
           vee::cmd_push_vert_frag_constants(*scb, *pl, &pc);
           oqr.run(*scb, sw.extent());
-          cbuf.cmd_copy_to_host(*scb, {}, { 1, 1 }, hbuf.buffer());
 
-          static int count = 0;
-          if (count < 5) {
-            auto mem = hbuf.map();
-            silog::log(silog::debug, "%08x", *static_cast<unsigned *>(*mem));
-            count++;
-          }
-          });
+          int mx = casein::mouse_pos.x;
+          int my = casein::mouse_pos.y;
+          cbuf.cmd_copy_to_host(*scb, { mx, my }, { 1, 1 }, hbuf.buffer());
+        });
+
+        auto mem = hbuf.map();
+        unsigned pick = *static_cast<unsigned *>(*mem);
+        pc.selection = pick & 0xFF;
       });
     }
   }

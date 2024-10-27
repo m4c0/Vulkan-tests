@@ -2,6 +2,7 @@
 
 layout(push_constant) uniform upc {
   float aspect;
+  float selection;
 } pc;
 
 layout(location = 0) in vec2 position;
