@@ -25,16 +25,21 @@ struct thread : public voo::casein_thread {
       voo::swapchain_and_stuff sw { dq, *rp, {{ cbuf.image_view() }} };
 
       auto pl = vee::create_pipeline_layout();
-      voo::one_quad_render oqr { "multi-output", pd, *rp, *pl, 2 };
+      voo::one_quad_render oqr { "multi-output", pd, *rp, *pl, {
+        vee::colour_blend_classic(), vee::colour_blend_none()
+      } };
 
       extent_loop(q, sw, [&] {
         sw.queue_one_time_submit(q, [&](auto pcb) {
-          voo::cmd_render_pass scb {{
+          voo::cmd_render_pass scb {vee::render_pass_begin {
             .command_buffer = *pcb,
             .render_pass = *rp,
             .framebuffer = sw.framebuffer(),
             .extent = sw.extent(),
-            .clear_colours = {{ {}, {} }},
+            .clear_colours {
+              vee::clear_colour(0, 0, 0, 0),
+              vee::clear_colour(0, 0, 0, 0),
+            },
           }};
           oqr.run(*scb, sw.extent());
           cbuf.cmd_copy_to_host(*scb, {}, { 1, 1 }, hbuf.buffer());
