@@ -33,6 +33,7 @@ struct thread : public voo::casein_thread {
             .render_pass = *rp,
             .framebuffer = sw.framebuffer(),
             .extent = sw.extent(),
+            .clear_colours = {{ {}, {} }},
           }};
           oqr.run(*scb, sw.extent());
         });
