@@ -10,16 +10,32 @@ struct thread : public voo::casein_thread {
   void run() override {
     voo::device_and_queue dq { "test" };
     while (!interrupted()) {
-      voo::swapchain_and_stuff sw { dq };
+      auto rp = vee::create_render_pass({{
+        vee::create_colour_attachment(dq.physical_device(), dq.surface()),
+        vee::create_colour_attachment(),
+      }});
+      auto pd = dq.physical_device();
+      auto s = dq.surface();
+      auto q = dq.queue();
+
+      voo::offscreen::colour_buffer extra { pd, voo::extent_of(pd, s) };
+      voo::swapchain_and_stuff sw { dq, *rp, {{ extra.image_view() }} };
 
       // TODO: add more attachments
-      auto rp = vee::create_render_pass(dq.physical_device(), dq.surface());
 
       auto pl = vee::create_pipeline_layout();
       voo::one_quad_render oqr { "multi-output", dq.physical_device(), *rp, *pl };
 
-      ots_loop(dq, sw, [&](auto cb) {
-        oqr.run(cb, sw.extent());
+      extent_loop(q, sw, [&] {
+        sw.queue_one_time_submit(q, [&](auto pcb) {
+          voo::cmd_render_pass scb {{
+            .command_buffer = *pcb,
+            .render_pass = *rp,
+            .framebuffer = sw.framebuffer(),
+            .extent = sw.extent(),
+          }};
+          oqr.run(*scb, sw.extent());
+        });
       });
     }
   }
