@@ -7,6 +7,10 @@ import silog;
 import vee;
 import voo;
 
+struct upc {
+  float aspect;
+};
+
 struct thread : public voo::casein_thread {
   void run() override {
     voo::device_and_queue dq { "test" };
@@ -24,13 +28,17 @@ struct thread : public voo::casein_thread {
 
       voo::swapchain_and_stuff sw { dq, *rp, {{ cbuf.image_view() }} };
 
-      auto pl = vee::create_pipeline_layout();
+      auto pl = vee::create_pipeline_layout({
+        vee::vert_frag_push_constant_range<upc>()
+      });
       voo::one_quad_render oqr { "multi-output", pd, *rp, *pl, {
         vee::colour_blend_classic(), vee::colour_blend_none()
       } };
 
       extent_loop(q, sw, [&] {
         sw.queue_one_time_submit(q, [&](auto pcb) {
+          upc pc { .aspect = sw.aspect() };
+
           voo::cmd_render_pass scb {vee::render_pass_begin {
             .command_buffer = *pcb,
             .render_pass = *rp,
@@ -41,6 +49,7 @@ struct thread : public voo::casein_thread {
               vee::clear_colour(0, 0, 0, 0),
             },
           }};
+          vee::cmd_push_vert_frag_constants(*scb, *pl, &pc);
           oqr.run(*scb, sw.extent());
           cbuf.cmd_copy_to_host(*scb, {}, { 1, 1 }, hbuf.buffer());
 
