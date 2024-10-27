@@ -18,12 +18,14 @@ struct thread : public voo::casein_thread {
     auto s = dq.surface();
     auto q = dq.queue();
 
+    constexpr const auto fmt = vee::image_format_rgba_unorm;
+
     while (!interrupted()) {
       auto rp = vee::create_render_pass({{
         vee::create_colour_attachment(pd, s),
-        vee::create_colour_attachment(),
+        vee::create_colour_attachment(fmt),
       }});
-      voo::offscreen::colour_buffer cbuf { pd, voo::extent_of(pd, s) };
+      voo::offscreen::colour_buffer cbuf { pd, voo::extent_of(pd, s), fmt };
       voo::offscreen::host_buffer hbuf { pd, { 1, 1 } };
 
       voo::swapchain_and_stuff sw { dq, *rp, {{ cbuf.image_view() }} };
