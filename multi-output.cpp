@@ -24,7 +24,7 @@ struct thread : public voo::casein_thread {
       // TODO: add more attachments
 
       auto pl = vee::create_pipeline_layout();
-      voo::one_quad_render oqr { "multi-output", dq.physical_device(), *rp, *pl };
+      voo::one_quad_render oqr { "multi-output", dq.physical_device(), *rp, *pl, 2 };
 
       extent_loop(q, sw, [&] {
         sw.queue_one_time_submit(q, [&](auto pcb) {
