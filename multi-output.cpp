@@ -12,6 +12,7 @@ struct thread : public voo::casein_thread {
     voo::device_and_queue dq { "test" };
     auto pd = dq.physical_device();
     auto s = dq.surface();
+    auto q = dq.queue();
 
     while (!interrupted()) {
       auto rp = vee::create_render_pass({{
@@ -24,18 +25,27 @@ struct thread : public voo::casein_thread {
       voo::swapchain_and_stuff sw { dq, *rp, {{ cbuf.image_view() }} };
 
       auto pl = vee::create_pipeline_layout();
-      voo::one_quad_render oqr { "multi-output", pd, *rp, *pl };
+      voo::one_quad_render oqr { "multi-output", pd, *rp, *pl, 2 };
 
-      ots_loop(dq, sw, [&](auto cb) {
-        oqr.run(cb, sw.extent());
-        cbuf.cmd_copy_to_host(cb, {}, { 1, 1 }, hbuf.buffer());
+      extent_loop(q, sw, [&] {
+        sw.queue_one_time_submit(q, [&](auto pcb) {
+          voo::cmd_render_pass scb {{
+            .command_buffer = *pcb,
+            .render_pass = *rp,
+            .framebuffer = sw.framebuffer(),
+            .extent = sw.extent(),
+            .clear_colours = {{ {}, {} }},
+          }};
+          oqr.run(*scb, sw.extent());
+          cbuf.cmd_copy_to_host(*scb, {}, { 1, 1 }, hbuf.buffer());
 
-        static int count = 0;
-        if (count < 5) {
-          auto mem = hbuf.map();
-          silog::log(silog::debug, "%08x", *static_cast<unsigned *>(*mem));
-          count++;
-        }
+          static int count = 0;
+          if (count < 5) {
+            auto mem = hbuf.map();
+            silog::log(silog::debug, "%08x", *static_cast<unsigned *>(*mem));
+            count++;
+          }
+          });
       });
     }
   }
